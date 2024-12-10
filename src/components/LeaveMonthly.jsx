@@ -12,7 +12,7 @@ const EmployeeTable = () => {
   const [selectedMonth, setSelectedMonth] = useState(
     String(new Date().getMonth()).padStart(2, "0")
   );
-  const [selectedStatus, setSelectedStatus] = useState("1");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [role, setRole] = useState("");
   const [divisions, setDivisions] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -38,7 +38,6 @@ const EmployeeTable = () => {
             body: JSON.stringify({
               year: selectedYear,
               month: selectedMonth,
-              division_id: selectedDivision,
               status: newStatus,
             }),
           }
@@ -78,7 +77,7 @@ const EmployeeTable = () => {
         const data = await response.json();
 
         if (data.status === "success") {
-          setSelectedStatus(data.status_data?.status || "1");
+          setSelectedStatus(data.status_data?.status || "0");
           setRole(data.role_id)
           setSelectedDivision(data.division_id)
           console.log(data.role_id)
@@ -169,11 +168,7 @@ const EmployeeTable = () => {
   }, []);
   
 
-  const handleEdit = (employeeId) => {
-    navigate(
-      `/leave-form?id=${employeeId}&year=${selectedYear}&month=${selectedMonth}`
-    );
-  };
+ 
 
   const months = [
     { value: "01", label: "January" },
@@ -234,7 +229,7 @@ const EmployeeTable = () => {
             value={selectedYear}
             onChange={handleYearChange}
             className="p-2 border rounded"
-            disabled
+           
           >
             <option value="">-- Select Year --</option>
             {[...Array(6)].map((_, i) => {
@@ -256,7 +251,7 @@ const EmployeeTable = () => {
             value={selectedMonth}
             onChange={handleMonthChange}
             className="p-2 border rounded"
-            disabled
+           
           >
             <option value="">-- Select Month --</option>
             {months.map((month) => (
@@ -275,6 +270,7 @@ const EmployeeTable = () => {
             value={selectedStatus}
             onChange={handleStatusChange}
             className="p-2 border rounded"
+            disabled
           >
             <option value="1" disabled={selectedStatus >2}>-- Select Status --</option>
             <option value="2" disabled={role!==4 || selectedStatus >2}>Done</option>
@@ -302,7 +298,7 @@ const EmployeeTable = () => {
               <th className="border border-gray-300 px-4 py-2">
                 Total Leave Days
               </th>
-              <th className="border border-gray-300 px-4 py-2">Actions</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -357,23 +353,7 @@ const EmployeeTable = () => {
                           )
                         )}
                       </td>
-                      <td
-                        className="border border-gray-300 px-4 py-2"
-                        rowSpan={employee.leaves.length}
-                      >
-                        <button
-                          id="actionButton"
-                          onClick={() => handleEdit(employee.id)}
-                          className={`py-1 px-4 rounded ${
-                            selectedStatus === "1"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          }`}
-                          disabled={selectedStatus !== "1"} // Disable button when newStatus != 1
-                        >
-                          <CalendarMonthIcon />
-                        </button>
-                      </td>
+                     
                     </>
                   )}
                 </tr>

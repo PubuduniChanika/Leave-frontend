@@ -12,15 +12,16 @@ const EmployeeTable = () => {
   const [selectedMonth, setSelectedMonth] = useState(
     String(new Date().getMonth()).padStart(2, "0")
   );
-  const [selectedStatus, setSelectedStatus] = useState("1");
+  const [selectedStatus, setSelectedStatus] = useState("");
   const [role, setRole] = useState("");
   const [divisions, setDivisions] = useState([]);
-  const [selectedDivision, setSelectedDivision] = useState("");
+  const [selectedDivision, setSelectedDivision] = useState("6");
 
   const navigate = useNavigate();
 
   const handleYearChange = (e) => setSelectedYear(e.target.value);
   const handleMonthChange = (e) => setSelectedMonth(e.target.value);
+  const handleDivisionChange = (e) => setSelectedDivision(e.target.value);
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
     setSelectedStatus(newStatus);
@@ -61,7 +62,7 @@ const EmployeeTable = () => {
 
       try {
         const response = await fetch(
-          `http://localhost/ems/admin/Leave/fetch_division_leave.php?year=${selectedYear}&month=${selectedMonth}`,
+          `http://localhost/ems/admin/Leave/fetch_leave.php?year=${selectedYear}&month=${selectedMonth}&division_id=${selectedDivision}`,
           {
             method: "GET",
             credentials: "include",
@@ -78,9 +79,8 @@ const EmployeeTable = () => {
         const data = await response.json();
 
         if (data.status === "success") {
-          setSelectedStatus(data.status_data?.status || "1");
+          setSelectedStatus(data.status_data?.status || "0");
           setRole(data.role_id)
-          setSelectedDivision(data.division_id)
           console.log(data.role_id)
           console.log(data)
 
@@ -137,7 +137,7 @@ const EmployeeTable = () => {
     };
 
     fetchEmployees();
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, selectedDivision]);
 
   useEffect(() => {
     const fetchDivisions = async () => {
@@ -212,9 +212,8 @@ const EmployeeTable = () => {
           <select
             id="division"
             value={selectedDivision}
-            // onChange={handleDivisionChange}
+            onChange={handleDivisionChange}
             className="p-2 border rounded"
-            disabled
           >
             <option value="">-- Select Division --</option>
             {divisions.map((division) => (
@@ -234,7 +233,7 @@ const EmployeeTable = () => {
             value={selectedYear}
             onChange={handleYearChange}
             className="p-2 border rounded"
-            disabled
+            
           >
             <option value="">-- Select Year --</option>
             {[...Array(6)].map((_, i) => {
@@ -256,7 +255,7 @@ const EmployeeTable = () => {
             value={selectedMonth}
             onChange={handleMonthChange}
             className="p-2 border rounded"
-            disabled
+          
           >
             <option value="">-- Select Month --</option>
             {months.map((month) => (
@@ -275,13 +274,14 @@ const EmployeeTable = () => {
             value={selectedStatus}
             onChange={handleStatusChange}
             className="p-2 border rounded"
+            disabled
           >
-            <option value="1" disabled={selectedStatus >2}>-- Select Status --</option>
-            <option value="2" disabled={role!==4 || selectedStatus >2}>Done</option>
-            <option value="3" disabled={role!==5 || selectedStatus >3}>
-              Recommended
+            <option value="1" disabled>-- Select Status --</option>
+            <option value="2" disabled>Done</option>
+            <option value="3" disabled>
+            Recommended
             </option>
-            <option value="4" disabled={role!==6}>
+            <option value="4">
               Approved
             </option>
           </select>
@@ -302,7 +302,7 @@ const EmployeeTable = () => {
               <th className="border border-gray-300 px-4 py-2">
                 Total Leave Days
               </th>
-              <th className="border border-gray-300 px-4 py-2">Actions</th>
+              
             </tr>
           </thead>
           <tbody>
@@ -357,23 +357,7 @@ const EmployeeTable = () => {
                           )
                         )}
                       </td>
-                      <td
-                        className="border border-gray-300 px-4 py-2"
-                        rowSpan={employee.leaves.length}
-                      >
-                        <button
-                          id="actionButton"
-                          onClick={() => handleEdit(employee.id)}
-                          className={`py-1 px-4 rounded ${
-                            selectedStatus === "1"
-                              ? "bg-blue-500 text-white"
-                              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          }`}
-                          disabled={selectedStatus !== "1"} // Disable button when newStatus != 1
-                        >
-                          <CalendarMonthIcon />
-                        </button>
-                      </td>
+                      
                     </>
                   )}
                 </tr>

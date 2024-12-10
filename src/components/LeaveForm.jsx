@@ -2,14 +2,56 @@ import React, { useState, useEffect } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { Select, MenuItem, TextField, IconButton } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 
-const DateRangeForm = () => {
+const LeaveForm = () => {
   const [dateRanges, setDateRanges] = useState([
     { fromDate: '', toDate: '', numberOfDays: '', leaveType: '' },
   ]);
   const [totalDays, setTotalDays] = useState(0);
+  const location = useLocation();
 
-  // Handle adding a new row
+  // Calculate the previous month's range
+  const today = new Date();
+  const firstDayOfPreviousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastDayOfPreviousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+  const minDate = firstDayOfPreviousMonth.toISOString().split('T')[0];
+  const maxDate = lastDayOfPreviousMonth.toISOString().split('T')[0];
+
+  const queryParams = new URLSearchParams(location.search);
+  const emp_id = queryParams.get('id');
+  const emp_name = queryParams.get('name');
+  const year = queryParams.get('year');
+  const month = queryParams.get('month');
+
+  // Fetch leave data
+  useEffect(() => {
+    if (emp_id && year && month) {
+      fetch(`http://localhost/ems/admin/Leave/fetch_individual_leave.php?id=${emp_id}&year=${year}&month=${month}`, {
+        method: 'GET',
+        credentials: 'include', // Ensure credentials are included in the request
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === 'success') {
+            const fetchedData = data.data.map((item) => ({
+              fromDate: item.from_date,
+              toDate: item.to_date,
+              numberOfDays: item.number_of_days,
+              leaveType: item.leave_type,
+            }));
+            setDateRanges(fetchedData);
+          } else {
+            alert('No leave data found for this employee.');
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching leave data:', error);
+          alert('Failed to load leave data.');
+        });
+    }
+  }, [emp_id, year, month]);
+
   const handleAddRow = () => {
     setDateRanges([
       ...dateRanges,
@@ -17,33 +59,32 @@ const DateRangeForm = () => {
     ]);
   };
 
-  // Handle removing a row
   const handleRemoveRow = (index) => {
     const updatedDateRanges = dateRanges.filter((_, i) => i !== index);
     setDateRanges(updatedDateRanges);
   };
 
-  // Handle field changes for each row
   const handleChange = (e, index) => {
     const { name, value } = e.target;
     const updatedDateRanges = [...dateRanges];
     updatedDateRanges[index][name] = value;
 
-    // If "From Date" or "To Date" is updated, calculate the number of days
     if (name === 'fromDate' || name === 'toDate') {
       const fromDate = new Date(updatedDateRanges[index].fromDate);
       const toDate = new Date(updatedDateRanges[index].toDate);
-      if (fromDate && toDate) {
+
+      if (fromDate && toDate && fromDate <= toDate) {
         const timeDifference = toDate - fromDate;
-        const daysDifference = timeDifference / (1000 * 3600 * 24);
-        updatedDateRanges[index].numberOfDays = daysDifference >= 0 ? daysDifference : '';
+        const daysDifference = (timeDifference / (1000 * 3600 * 24)).toFixed(2);
+        updatedDateRanges[index].numberOfDays = daysDifference;
+      } else {
+        updatedDateRanges[index].numberOfDays = '';
       }
     }
 
     setDateRanges(updatedDateRanges);
   };
 
-  // Update total days when dateRanges changes
   useEffect(() => {
     const total = dateRanges.reduce((sum, range) => {
       return sum + (parseFloat(range.numberOfDays) || 0);
@@ -51,18 +92,64 @@ const DateRangeForm = () => {
     setTotalDays(total);
   }, [dateRanges]);
 
-  // Handle editing the "Number of Days" directly
-  const handleNumberOfDaysChange = (e, index) => {
-    const { value } = e.target;
-    const updatedDateRanges = [...dateRanges];
-    updatedDateRanges[index].numberOfDays = value;
-    setDateRanges(updatedDateRanges);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const isValid = dateRanges.every(
+      (range) =>
+        range.fromDate &&
+        range.toDate &&
+        range.numberOfDays &&
+        range.leaveType
+    );
+
+    if (!isValid) {
+      alert('Please fill all fields for each row before submitting.');
+      return;
+    }
+
+    try {
+      if (!emp_id || !year || !month) {
+        alert('Missing required parameters in the URL.');
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost/ems/admin/Leave/submit_leave.php?emp_id=${emp_id}&year=${year}&month=${month}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dateRanges),
+          credentials: 'include', // Ensure credentials are included in the request
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(result.message || 'Leave submitted successfully!');
+        window.location.href = '/leave';
+      } else if (result.status === 'error' && result.message === 'User ID not found in session.') {
+        alert('Session expired or user not logged in. Please log in again.');
+        window.location.href = '/';
+      } else {
+        alert(result.error || 'An error occurred!');
+      }
+    } catch (error) {
+      console.error('Error submitting leave:', error);
+      alert('Something went wrong. Please try again.');
+    }
   };
 
   return (
     <div className="container mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-4">Date Range Form</h2>
-      <form>
+      <h2 className="text-2xl font-bold mb-4">Leave Form</h2>
+      <h3>{emp_name}</h3>
+      <hr></hr>
+      <br></br>
+      <form onSubmit={handleSubmit}>
         {dateRanges.map((range, index) => (
           <div key={index} className="mb-4 flex space-x-4 items-center">
             <div>
@@ -74,6 +161,8 @@ const DateRangeForm = () => {
                 onChange={(e) => handleChange(e, index)}
                 variant="outlined"
                 fullWidth
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: minDate, max: maxDate }}
               />
             </div>
             <div>
@@ -85,6 +174,8 @@ const DateRangeForm = () => {
                 onChange={(e) => handleChange(e, index)}
                 variant="outlined"
                 fullWidth
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: minDate, max: maxDate }}
               />
             </div>
             <div>
@@ -93,7 +184,7 @@ const DateRangeForm = () => {
                 label="Number of Days"
                 name="numberOfDays"
                 value={range.numberOfDays}
-                onChange={(e) => handleNumberOfDaysChange(e, index)}
+                onChange={(e) => handleChange(e, index)}
                 variant="outlined"
                 fullWidth
               />
@@ -106,6 +197,7 @@ const DateRangeForm = () => {
                 displayEmpty
                 variant="outlined"
                 fullWidth
+                style={{ width: '200px', maxWidth: '100%' }}
               >
                 <MenuItem value="" disabled>
                   Select Leave Type
@@ -125,9 +217,14 @@ const DateRangeForm = () => {
             <AddIcon />
           </IconButton>
         </div>
+        <button
+          type="submit"
+          className="mt-6 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Submit
+        </button>
       </form>
 
-      {/* Total Days */}
       <div className="mt-6">
         <h3 className="text-lg font-semibold">Total Number of Days: {totalDays}</h3>
       </div>
@@ -135,4 +232,4 @@ const DateRangeForm = () => {
   );
 };
 
-export default DateRangeForm;
+export default LeaveForm;

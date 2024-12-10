@@ -37,10 +37,18 @@ const LoginForm = () => {
 
       if (result.status === "success") {
         setMessage(`Welcome ${result.data.username}, Division: ${result.data.division}`);
-        navigate("/leave"); 
-        // Redirect to another page after successful login
-        // history.push("/dashboard"); // Assuming you're redirecting to a dashboard page
-      } else {
+        
+        if (result.data.role_id === 4 || result.data.role_id === 5) {
+            navigate("/leave"); 
+        } else if (result.data.role_id === 6 || result.data.role_id === 7) {
+            navigate("/leave-admin");
+            console.log(result.data.role_id);
+        } 
+        window.location.reload();
+    }
+    
+        
+       else {
         setMessage(result.message);
       }
     } catch (error) {
