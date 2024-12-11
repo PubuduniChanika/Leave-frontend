@@ -13,8 +13,6 @@ import Navbar from "./common/NavBar";
 import Footer from "./common/Footer";
 import axios from "axios";
 
-  
-
 const App = () => {
   const [roleId, setRoleId] = useState(null);
   const [userName, setUserName] = useState(null);

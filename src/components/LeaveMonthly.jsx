@@ -78,10 +78,10 @@ const EmployeeTable = () => {
 
         if (data.status === "success") {
           setSelectedStatus(data.status_data?.status || "0");
-          setRole(data.role_id)
-          setSelectedDivision(data.division_id)
-          console.log(data.role_id)
-          console.log(data)
+          setRole(data.role_id);
+          setSelectedDivision(data.division_id);
+          console.log(data.role_id);
+          console.log(data);
 
           const grouped = data.data.reduce((acc, record) => {
             const {
@@ -141,13 +141,16 @@ const EmployeeTable = () => {
   useEffect(() => {
     const fetchDivisions = async () => {
       try {
-        const response = await fetch("http://localhost/ems/admin/Leave/fetch_divisions.php", {
-          method: "GET",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await fetch(
+          "http://localhost/ems/admin/Leave/fetch_divisions.php",
+          {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to fetch divisions.");
@@ -166,9 +169,6 @@ const EmployeeTable = () => {
 
     fetchDivisions();
   }, []);
-  
-
- 
 
   const months = [
     { value: "01", label: "January" },
@@ -201,24 +201,24 @@ const EmployeeTable = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Employee Leave Records</h1>
       <div>
-          <label htmlFor="division" className="block text-gray-700 mb-1">
-            Division
-          </label>
-          <select
-            id="division"
-            value={selectedDivision}
-            // onChange={handleDivisionChange}
-            className="p-2 border rounded"
-            disabled
-          >
-            <option value="">-- Select Division --</option>
-            {divisions.map((division) => (
-              <option key={division.id} value={division.id}>
-                {division.division}
-              </option>
-            ))}
-          </select>
-        </div>
+        <label htmlFor="division" className="block text-gray-700 mb-1">
+          Division
+        </label>
+        <select
+          id="division"
+          value={selectedDivision}
+          // onChange={handleDivisionChange}
+          className="p-2 border rounded"
+          disabled
+        >
+          <option value="">-- Select Division --</option>
+          {divisions.map((division) => (
+            <option key={division.id} value={division.id}>
+              {division.division}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="mb-4 flex gap-4">
         <div>
           <label htmlFor="year" className="block text-gray-700 mb-1">
@@ -229,17 +229,16 @@ const EmployeeTable = () => {
             value={selectedYear}
             onChange={handleYearChange}
             className="p-2 border rounded"
-           
           >
             <option value="">-- Select Year --</option>
             {[...Array(6)].map((_, i) => {
-    const year = new Date().getFullYear() + i; // Start from the current year and go up to the next 5 years
-    return (
-      <option key={year} value={String(year)}>
-        {year}
-      </option>
-    );
-  })}
+              const year = new Date().getFullYear() + i; // Start from the current year and go up to the next 5 years
+              return (
+                <option key={year} value={String(year)}>
+                  {year}
+                </option>
+              );
+            })}
           </select>
         </div>
         <div>
@@ -251,7 +250,6 @@ const EmployeeTable = () => {
             value={selectedMonth}
             onChange={handleMonthChange}
             className="p-2 border rounded"
-           
           >
             <option value="">-- Select Month --</option>
             {months.map((month) => (
@@ -272,12 +270,16 @@ const EmployeeTable = () => {
             className="p-2 border rounded"
             disabled
           >
-            <option value="1" disabled={selectedStatus >2}>-- Select Status --</option>
-            <option value="2" disabled={role!==4 || selectedStatus >2}>Done</option>
-            <option value="3" disabled={role!==5 || selectedStatus >3}>
+            <option value="1" disabled={selectedStatus > 2}>
+              -- Select Status --
+            </option>
+            <option value="2" disabled={role !== 4 || selectedStatus > 2}>
+              Done
+            </option>
+            <option value="3" disabled={role !== 5 || selectedStatus > 3}>
               Recommended
             </option>
-            <option value="4" disabled={role!==6}>
+            <option value="4" disabled={role !== 6}>
               Approved
             </option>
           </select>
@@ -298,7 +300,6 @@ const EmployeeTable = () => {
               <th className="border border-gray-300 px-4 py-2">
                 Total Leave Days
               </th>
-              
             </tr>
           </thead>
           <tbody>
@@ -353,7 +354,6 @@ const EmployeeTable = () => {
                           )
                         )}
                       </td>
-                     
                     </>
                   )}
                 </tr>

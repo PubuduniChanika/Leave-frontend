@@ -5,53 +5,50 @@ import { Select, MenuItem, TextField, IconButton } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 
 const LeaveForm = () => {
-  const [dateRanges, setDateRanges] = useState([
-    { fromDate: '', toDate: '', numberOfDays: '', leaveType: '' },
-  ]);
+  const [dateRanges, setDateRanges] = useState([]);
   const [totalDays, setTotalDays] = useState(0);
+  const [employeeDetails, setEmployeeDetails] = useState({ id: '', name: '', post: '' });
   const location = useLocation();
 
-  // Calculate the previous month's range
-  const today = new Date();
-  const firstDayOfPreviousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const lastDayOfPreviousMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-  const minDate = firstDayOfPreviousMonth.toISOString().split('T')[0];
-  const maxDate = lastDayOfPreviousMonth.toISOString().split('T')[0];
-
+  // Extract query parameters
   const queryParams = new URLSearchParams(location.search);
   const emp_id = queryParams.get('id');
-  const emp_name = queryParams.get('name');
   const year = queryParams.get('year');
   const month = queryParams.get('month');
 
-  // Fetch leave data
+  // Fetch employee and leave data
   useEffect(() => {
     if (emp_id && year && month) {
       fetch(`http://localhost/ems/admin/Leave/fetch_individual_leave.php?id=${emp_id}&year=${year}&month=${month}`, {
         method: 'GET',
-        credentials: 'include', // Ensure credentials are included in the request
+        credentials: 'include', // Include session credentials
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.status === 'success') {
-            const fetchedData = data.data.map((item) => ({
-              fromDate: item.from_date,
-              toDate: item.to_date,
-              numberOfDays: item.number_of_days,
-              leaveType: item.leave_type,
+            // Update employee details
+            setEmployeeDetails(data.employee);
+
+            // Update leave records
+            const fetchedRecords = data.leave_records.map((record) => ({
+              fromDate: record.from_date,
+              toDate: record.to_date,
+              numberOfDays: record.number_of_days,
+              leaveType: record.leave_type,
             }));
-            setDateRanges(fetchedData);
+            setDateRanges(fetchedRecords);
           } else {
-            alert('No leave data found for this employee.');
+            alert('Failed to fetch employee or leave data.');
           }
         })
         .catch((error) => {
-          console.error('Error fetching leave data:', error);
-          alert('Failed to load leave data.');
+          console.error('Error fetching data:', error);
+          alert('Error loading data.');
         });
     }
   }, [emp_id, year, month]);
 
+  // Add a new row
   const handleAddRow = () => {
     setDateRanges([
       ...dateRanges,
@@ -59,11 +56,13 @@ const LeaveForm = () => {
     ]);
   };
 
+  // Remove a row
   const handleRemoveRow = (index) => {
     const updatedDateRanges = dateRanges.filter((_, i) => i !== index);
     setDateRanges(updatedDateRanges);
   };
 
+  // Handle input change
   const handleChange = (e, index) => {
     const { name, value } = e.target;
     const updatedDateRanges = [...dateRanges];
@@ -75,7 +74,7 @@ const LeaveForm = () => {
 
       if (fromDate && toDate && fromDate <= toDate) {
         const timeDifference = toDate - fromDate;
-        const daysDifference = (timeDifference / (1000 * 3600 * 24)).toFixed(2);
+        const daysDifference = (timeDifference / (1000 * 3600 * 24) + 1).toFixed(2);
         updatedDateRanges[index].numberOfDays = daysDifference;
       } else {
         updatedDateRanges[index].numberOfDays = '';
@@ -85,6 +84,7 @@ const LeaveForm = () => {
     setDateRanges(updatedDateRanges);
   };
 
+  // Calculate total days
   useEffect(() => {
     const total = dateRanges.reduce((sum, range) => {
       return sum + (parseFloat(range.numberOfDays) || 0);
@@ -92,6 +92,7 @@ const LeaveForm = () => {
     setTotalDays(total);
   }, [dateRanges]);
 
+  // Submit leave data
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -109,11 +110,6 @@ const LeaveForm = () => {
     }
 
     try {
-      if (!emp_id || !year || !month) {
-        alert('Missing required parameters in the URL.');
-        return;
-      }
-
       const response = await fetch(
         `http://localhost/ems/admin/Leave/submit_leave.php?emp_id=${emp_id}&year=${year}&month=${month}`,
         {
@@ -122,7 +118,7 @@ const LeaveForm = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(dateRanges),
-          credentials: 'include', // Ensure credentials are included in the request
+          credentials: 'include',
         }
       );
 
@@ -131,9 +127,6 @@ const LeaveForm = () => {
       if (response.ok) {
         alert(result.message || 'Leave submitted successfully!');
         window.location.href = '/leave';
-      } else if (result.status === 'error' && result.message === 'User ID not found in session.') {
-        alert('Session expired or user not logged in. Please log in again.');
-        window.location.href = '/';
       } else {
         alert(result.error || 'An error occurred!');
       }
@@ -146,84 +139,80 @@ const LeaveForm = () => {
   return (
     <div className="container mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">Leave Form</h2>
-      <h3>{emp_name}</h3>
-      <hr></hr>
-      <br></br>
+      {employeeDetails.name && (
+        <h3 className="text-xl font-medium mb-4">
+          Employee: {employeeDetails.name} (Post: {employeeDetails.post})
+        </h3>
+      )}
       <form onSubmit={handleSubmit}>
-        {dateRanges.map((range, index) => (
-          <div key={index} className="mb-4 flex space-x-4 items-center">
-            <div>
-              <TextField
-                type="date"
-                label="From Date"
-                name="fromDate"
-                value={range.fromDate}
-                onChange={(e) => handleChange(e, index)}
-                variant="outlined"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: minDate, max: maxDate }}
-              />
-            </div>
-            <div>
-              <TextField
-                type="date"
-                label="To Date"
-                name="toDate"
-                value={range.toDate}
-                onChange={(e) => handleChange(e, index)}
-                variant="outlined"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: minDate, max: maxDate }}
-              />
-            </div>
-            <div>
-              <TextField
-                type="number"
-                label="Number of Days"
-                name="numberOfDays"
-                value={range.numberOfDays}
-                onChange={(e) => handleChange(e, index)}
-                variant="outlined"
-                fullWidth
-              />
-            </div>
-            <div>
-              <Select
-                name="leaveType"
-                value={range.leaveType}
-                onChange={(e) => handleChange(e, index)}
-                displayEmpty
-                variant="outlined"
-                fullWidth
-                style={{ width: '200px', maxWidth: '100%' }}
-              >
-                <MenuItem value="" disabled>
-                  Select Leave Type
-                </MenuItem>
-                <MenuItem value="Casual">Casual</MenuItem>
-                <MenuItem value="Sick">Sick</MenuItem>
-                <MenuItem value="Duty">Duty</MenuItem>
-              </Select>
-            </div>
-            <IconButton onClick={() => handleRemoveRow(index)} color="error">
-              <RemoveIcon />
-            </IconButton>
-          </div>
-        ))}
-        <div className="mt-4">
-          <IconButton onClick={handleAddRow} color="primary">
-            <AddIcon />
-          </IconButton>
-        </div>
-        <button
-          type="submit"
-          className="mt-6 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Submit
-        </button>
-      </form>
+  {dateRanges.map((range, index) => (
+    <div
+      key={index}
+      className="mb-4 flex flex-wrap sm:flex-nowrap gap-4 items-center"
+    >
+      <TextField
+        type="date"
+        label="From Date"
+        name="fromDate"
+        value={range.fromDate}
+        onChange={(e) => handleChange(e, index)}
+        variant="outlined"
+        className="flex-1 min-w-[200px] max-w-[300px]"
+      />
+      <TextField
+        type="date"
+        label="To Date"
+        name="toDate"
+        value={range.toDate}
+        onChange={(e) => handleChange(e, index)}
+        variant="outlined"
+        className="flex-1 min-w-[200px] max-w-[300px]"
+      />
+      <TextField
+        type="number"
+        label="Number of Days"
+        name="numberOfDays"
+        value={range.numberOfDays}
+        onChange={(e) => handleChange(e, index)}
+        variant="outlined"
+        className="flex-1 min-w-[200px] max-w-[300px]"
+      />
+      <Select
+        name="leaveType"
+        value={range.leaveType}
+        onChange={(e) => handleChange(e, index)}
+        displayEmpty
+        variant="outlined"
+        className="flex-1 min-w-[200px] max-w-[300px]"
+      >
+        <MenuItem value="" disabled>
+          Select Leave Type
+        </MenuItem>
+        <MenuItem value="Casual">Casual</MenuItem>
+        <MenuItem value="Sick">Sick</MenuItem>
+        <MenuItem value="Duty">Duty</MenuItem>
+      </Select>
+      <IconButton
+        onClick={() => handleRemoveRow(index)}
+        color="error"
+        className="flex-shrink-0"
+      >
+        <RemoveIcon />
+      </IconButton>
+    </div>
+  ))}
+  <div className="mt-4">
+    <IconButton onClick={handleAddRow} color="primary">
+      <AddIcon />
+    </IconButton>
+  </div>
+  <button
+    type="submit"
+    className="mt-6 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+  >
+    Submit
+  </button>
+</form>
 
       <div className="mt-6">
         <h3 className="text-lg font-semibold">Total Number of Days: {totalDays}</h3>

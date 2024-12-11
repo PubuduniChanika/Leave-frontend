@@ -71,6 +71,7 @@ const LoginForm = () => {
             value={formData.username}
             onChange={handleChange}
             className="w-full p-2 border rounded"
+            maxLength={150}
             required
           />
         </div>
@@ -83,6 +84,7 @@ const LoginForm = () => {
             value={formData.password}
             onChange={handleChange}
             className="w-full p-2 border rounded"
+            maxLength={15}
             required
           />
         </div>
